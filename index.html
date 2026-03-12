@@ -928,28 +928,49 @@
 
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
+  const FORMSPREE = 'https://formspree.io/f/mreykqeb';
+
   // WAITLIST
-  function joinWaitlist() {
+  async function joinWaitlist() {
     const email = document.getElementById('waitlist-email').value;
     if (!email || !email.includes('@')) {
       alert('Merci d\'entrer un email valide.');
       return;
     }
-    document.querySelector('.form-group').style.display = 'none';
-    document.getElementById('waitlist-success').style.display = 'block';
+    try {
+      await fetch(FORMSPREE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ type: 'Liste d\'attente', email })
+      });
+      document.querySelector('.form-group').style.display = 'none';
+      document.getElementById('waitlist-success').style.display = 'block';
+    } catch(e) {
+      alert('Une erreur est survenue, réessayez.');
+    }
   }
 
   // DEMO
-  function requestDemo() {
+  async function requestDemo() {
     const name = document.getElementById('demo-name').value;
     const email = document.getElementById('demo-email').value;
+    const phone = document.getElementById('demo-phone').value;
     if (!name || !email || !email.includes('@')) {
       alert('Merci de remplir votre prénom et email.');
       return;
     }
-    document.getElementById('demo-success').style.display = 'block';
-    document.querySelector('.demo-form').style.opacity = '0.4';
-    document.querySelector('.demo-submit').disabled = true;
+    try {
+      await fetch(FORMSPREE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ type: 'Demande de démo', name, email, phone })
+      });
+      document.getElementById('demo-success').style.display = 'block';
+      document.querySelector('.demo-form').style.opacity = '0.4';
+      document.querySelector('.demo-submit').disabled = true;
+    } catch(e) {
+      alert('Une erreur est survenue, réessayez.');
+    }
   }
 </script>
 </body>
