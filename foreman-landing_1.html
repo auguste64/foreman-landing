@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreman — Suivi de chantier simplifié</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0D0D0B;
+    --surface: #141412;
+    --surface2: #1C1C19;
+    --accent: #E8C547;
+    --accent2: #F5D76E;
+    --text: #F0EDE6;
+    --text-muted: #8A8880;
+    --text-dim: #4A4845;
+    --border: #2A2A26;
+    --radius: 12px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(13,13,11,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #0D0D0B;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .nav-cta:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(232,197,71,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(232,197,71,0.1);
+    border: 1px solid rgba(232,197,71,0.25);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: 100px;
+    margin-bottom: 32px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero-badge-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 5vw, 58px);
+    line-height: 1.08;
+    letter-spacing: -1.5px;
+    max-width: 820px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.6s ease 0.1s both;
+  }
+
+  h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: clamp(17px, 2vw, 20px);
+    color: var(--text-muted);
+    max-width: 520px;
+    font-weight: 300;
+    margin-bottom: 48px;
+    animation: fadeUp 0.6s ease 0.2s both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    animation: fadeUp 0.6s ease 0.3s both;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0D0D0B;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 16px 32px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(232,197,71,0.3); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    padding: 16px 32px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--text-muted); transform: translateY(-2px); }
+
+  .hero-note {
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--text-dim);
+    animation: fadeUp 0.6s ease 0.4s both;
+  }
+
+  /* STATS */
+  .stats {
+    padding: 60px 40px;
+    display: flex;
+    justify-content: center;
+    gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    padding: 32px 40px;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+
+  .stat-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 48px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  /* PROBLEM */
+  .section {
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: clamp(26px, 3vw, 38px);
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    margin-bottom: 24px;
+    max-width: 600px;
+  }
+
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 48px;
+  }
+
+  .problem-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .problem-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(232,197,71,0.3), transparent);
+  }
+
+  .problem-icon {
+    font-size: 28px;
+    margin-bottom: 16px;
+  }
+
+  .problem-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 17px;
+    margin-bottom: 10px;
+  }
+
+  .problem-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  /* FEATURES */
+  .features-section {
+    padding: 100px 24px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .features-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 56px;
+  }
+
+  .feature-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .feature-card:hover { border-color: rgba(232,197,71,0.4); transform: translateY(-4px); }
+
+  .feature-number {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 20px;
+  }
+
+  .feature-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+
+  .feature-card p {
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 300;
+    line-height: 1.65;
+  }
+
+  /* HOW IT WORKS */
+  .steps {
+    margin-top: 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 700px;
+  }
+
+  .step {
+    display: flex;
+    gap: 28px;
+    padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .step:last-child { border-bottom: none; }
+
+  .step-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    color: var(--text-dim);
+    line-height: 1;
+    min-width: 50px;
+    padding-top: 4px;
+  }
+
+  .step-content h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .step-content p {
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  /* PRICING */
+  .pricing-section {
+    padding: 100px 24px;
+  }
+
+  .pricing-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .pricing-card {
+    max-width: 480px;
+    margin: 56px auto 0;
+    background: var(--surface);
+    border: 1px solid rgba(232,197,71,0.35);
+    border-radius: 16px;
+    padding: 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pricing-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .pricing-badge {
+    display: inline-block;
+    background: rgba(232,197,71,0.15);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+  }
+
+  .pricing-price {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 52px;
+    color: var(--text);
+    line-height: 1;
+    letter-spacing: -2px;
+    margin-bottom: 4px;
+  }
+
+  .pricing-price span {
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text-muted);
+  }
+
+  .pricing-period {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 36px;
+    font-weight: 300;
+  }
+
+  .pricing-features {
+    list-style: none;
+    text-align: left;
+    margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .pricing-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 15px;
+    color: var(--text-muted);
+    font-weight: 300;
+  }
+
+  .pricing-features li::before {
+    content: '✓';
+    color: var(--accent);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .pricing-note {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  /* CTA FINAL */
+  .cta-section {
+    padding: 100px 24px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(232,197,71,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(28px, 4vw, 44px);
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-section p {
+    color: var(--text-muted);
+    font-size: 18px;
+    font-weight: 300;
+    margin-bottom: 40px;
+  }
+
+  /* FORMS */
+  .form-container {
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  .form-group {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.2s;
+  }
+  .form-group:focus-within { border-color: rgba(232,197,71,0.5); }
+
+  .form-group input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 16px 20px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+  }
+  .form-group input::placeholder { color: var(--text-dim); }
+
+  .form-group button {
+    background: var(--accent);
+    color: #0D0D0B;
+    border: none;
+    padding: 16px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .form-group button:hover { background: var(--accent2); }
+
+  .form-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 20px 0;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .form-divider::before, .form-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .demo-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    text-align: left;
+  }
+
+  .demo-form h4 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .input-field {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    outline: none;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus { border-color: rgba(232,197,71,0.5); }
+  .input-field::placeholder { color: var(--text-dim); }
+
+  .demo-submit {
+    width: 100%;
+    background: var(--accent);
+    color: #0D0D0B;
+    border: none;
+    padding: 16px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: all 0.2s;
+  }
+  .demo-submit:hover { background: var(--accent2); transform: translateY(-1px); }
+
+  /* SUCCESS STATE */
+  .success-msg {
+    display: none;
+    background: rgba(232,197,71,0.1);
+    border: 1px solid rgba(232,197,71,0.3);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    color: var(--accent);
+    font-weight: 500;
+    margin-top: 12px;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  footer .logo { font-size: 18px; }
+
+  footer p {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    nav { padding: 16px 20px; }
+    .stats { padding: 40px 20px; }
+    .stat { border-right: none; border-bottom: 1px solid var(--border); padding: 24px 20px; }
+    .stat:last-child { border-bottom: none; }
+    footer { flex-direction: column; text-align: center; padding: 32px 20px; }
+    .hero-actions { flex-direction: column; align-items: center; }
+    .btn-primary, .btn-secondary { width: 100%; max-width: 320px; justify-content: center; }
+    .pricing-card { padding: 36px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Foreman</div>
+  <a href="#cta" class="nav-cta">Rejoindre la liste d'attente</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    Accès anticipé ouvert — places limitées
+  </div>
+  <h1>Vos comptes rendus de chantier <em>en 2 minutes.</em> Enfin.</h1>
+  <p class="hero-sub">Le logiciel de suivi de chantier conçu pour les architectes et maîtres d'œuvre. Simple, mobile, automatisé.</p>
+  <div class="hero-actions">
+    <a href="#cta" class="btn-primary">
+      Rejoindre la liste d'attente
+      <span>→</span>
+    </a>
+    <a href="#demo" class="btn-secondary">Demander une démo</a>
+  </div>
+  <p class="hero-note">Gratuit pour les artisans et clients invités par l'architecte</p>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat reveal">
+    <div class="stat-number">2 min</div>
+    <div class="stat-label">pour générer un compte rendu complet</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-number">100%</div>
+    <div class="stat-label">mobile — pensé pour le terrain</div>
+  </div>
+  <div class="stat reveal">
+    <div class="stat-number">0 €</div>
+    <div class="stat-label">pour les artisans et clients</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="section">
+  <div class="section-label reveal">Le problème</div>
+  <h2 class="section-title reveal">Le suivi de chantier prend trop de temps.</h2>
+  <p style="color: var(--text-muted); max-width: 560px; font-weight: 300; font-size: 17px;" class="reveal">Entre les photos à trier, les emails aux artisans, les comptes rendus à rédiger... vous perdez des heures chaque semaine sur de l'administratif.</p>
+
+  <div class="problem-grid">
+    <div class="problem-card reveal">
+      <div class="problem-icon">📸</div>
+      <h3>Des photos dans tous les sens</h3>
+      <p>Vos photos de chantier sont éparpillées entre votre téléphone, vos emails et vos dossiers. Retrouver la bonne photo prend une éternité.</p>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">📝</div>
+      <h3>Des comptes rendus chronophages</h3>
+      <p>Rédiger un compte rendu de réunion de chantier vous prend 30 à 60 minutes à chaque fois. Du temps que vous n'avez pas.</p>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">📱</div>
+      <h3>Des outils pas adaptés au mobile</h3>
+      <p>Les logiciels existants sont pensés pour le bureau. Sur chantier, avec votre téléphone, c'est une galère quotidienne.</p>
+    </div>
+    <div class="problem-card reveal">
+      <div class="problem-icon">💬</div>
+      <h3>Des artisans qui oublient</h3>
+      <p>Relancer les artisans manuellement, confirmer les créneaux, s'assurer que tout le monde est informé... c'est votre boulot à vous ?</p>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="features-section">
+  <div class="features-inner">
+    <div class="section-label reveal">La solution</div>
+    <h2 class="section-title reveal">Foreman automatise ce qui vous prend du temps.</h2>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-number">01</div>
+        <h3>Compte rendu automatisé</h3>
+        <p>Prenez vos photos sur place, notez vos observations en quelques mots. Foreman génère le compte rendu complet et l'envoie automatiquement aux artisans et au client.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-number">02</div>
+        <h3>Interface 100% mobile</h3>
+        <p>Conçu pour le terrain, pas pour un bureau. Tout ce dont vous avez besoin est à portée de pouce, même avec des gants ou en plein soleil.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-number">03</div>
+        <h3>Planning des artisans</h3>
+        <p>Les artisans cochent eux-mêmes leurs créneaux de présence. Fini les appels pour savoir qui est là le mardi matin. Le planning se remplit tout seul.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-number">04</div>
+        <h3>Interface client séparée</h3>
+        <p>Votre client a accès à l'avancement du chantier, mais pas à vos échanges avec les artisans. Vous gardez le contrôle de ce qui est partagé.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-number">05</div>
+        <h3>Convocation en un clic</h3>
+        <p>Planifiez une réunion de chantier et convoquez tous les artisans depuis une liste. Chacun reçoit sa convocation automatiquement.</p>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-number">06</div>
+        <h3>Suivi de progression</h3>
+        <p>Visualisez l'avancement de chaque chantier en temps réel. Identifiez les retards avant qu'ils deviennent des problèmes.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="section">
+  <div class="section-label reveal">Comment ça marche</div>
+  <h2 class="section-title reveal">3 étapes, c'est tout.</h2>
+
+  <div class="steps">
+    <div class="step reveal">
+      <div class="step-num">01</div>
+      <div class="step-content">
+        <h3>Vous ouvrez Foreman sur le chantier</h3>
+        <p>Depuis votre téléphone, vous prenez vos photos et notez vos observations directement sur place. Pas de double saisie, pas de retranscription.</p>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">02</div>
+      <div class="step-content">
+        <h3>Foreman génère le compte rendu</h3>
+        <p>En moins de 2 minutes, votre compte rendu est prêt. Structuré, professionnel, avec les photos intégrées.</p>
+      </div>
+    </div>
+    <div class="step reveal">
+      <div class="step-num">03</div>
+      <div class="step-content">
+        <h3>Tout le monde est informé automatiquement</h3>
+        <p>Le compte rendu part aux artisans concernés et à votre client. Vous n'avez rien à envoyer manuellement.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<div class="pricing-section">
+  <div class="pricing-inner" style="text-align: center;">
+    <div class="section-label reveal">Tarif</div>
+    <h2 class="section-title reveal" style="margin: 0 auto 0; max-width: 500px;">Un prix simple, sans surprise.</h2>
+
+    <div class="pricing-card reveal">
+      <div class="pricing-badge">Accès anticipé</div>
+      <div class="pricing-price">19<span>€</span></div>
+      <div class="pricing-period">par mois, par architecte</div>
+      <ul class="pricing-features">
+        <li>Compte rendu automatisé illimité</li>
+        <li>Photos et vidéos depuis mobile</li>
+        <li>Planning et suivi de présence artisans</li>
+        <li>Interface client séparée</li>
+        <li>Convocation de réunions de chantier</li>
+        <li>Accès gratuit pour vos artisans et clients</li>
+        <li>Support prioritaire accès anticipé</li>
+      </ul>
+      <a href="#cta" class="btn-primary" style="width: 100%; justify-content: center; font-size: 17px; padding: 18px;">Rejoindre la liste d'attente</a>
+      <p class="pricing-note">Prix garanti à vie pour les premiers inscrits</p>
+    </div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<section class="cta-section" id="cta">
+  <div class="cta-glow"></div>
+  <div class="section-label reveal">Accès anticipé</div>
+  <h2 class="reveal">Soyez parmi les premiers.</h2>
+  <p class="reveal">Rejoignez la liste d'attente ou demandez une démo personnalisée.</p>
+
+  <div class="form-container reveal">
+    <!-- WAITLIST -->
+    <div class="form-group">
+      <input type="email" id="waitlist-email" placeholder="votre@email.com" />
+      <button onclick="joinWaitlist()">Rejoindre →</button>
+    </div>
+    <div class="success-msg" id="waitlist-success">
+      ✓ Vous êtes sur la liste ! On vous contacte dès l'ouverture.
+    </div>
+
+    <div class="form-divider">ou</div>
+
+    <!-- DEMO FORM -->
+    <div class="demo-form" id="demo">
+      <h4>Demander une démo</h4>
+      <input type="text" class="input-field" id="demo-name" placeholder="Votre prénom" />
+      <input type="email" class="input-field" id="demo-email" placeholder="votre@email.com" />
+      <input type="tel" class="input-field" id="demo-phone" placeholder="Votre téléphone (optionnel)" />
+      <button class="demo-submit" onclick="requestDemo()">Demander une démo gratuite</button>
+    </div>
+    <div class="success-msg" id="demo-success">
+      ✓ Demande reçue ! On vous recontacte sous 24h pour planifier votre démo.
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="logo">Foreman</div>
+  <p>Conçu pour les architectes et maîtres d'œuvre</p>
+  <p style="color: var(--text-dim); font-size: 12px;">© 2026 Foreman</p>
+</footer>
+
+<script>
+  // REVEAL ON SCROLL
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // WAITLIST
+  function joinWaitlist() {
+    const email = document.getElementById('waitlist-email').value;
+    if (!email || !email.includes('@')) {
+      alert('Merci d\'entrer un email valide.');
+      return;
+    }
+    document.querySelector('.form-group').style.display = 'none';
+    document.getElementById('waitlist-success').style.display = 'block';
+  }
+
+  // DEMO
+  function requestDemo() {
+    const name = document.getElementById('demo-name').value;
+    const email = document.getElementById('demo-email').value;
+    if (!name || !email || !email.includes('@')) {
+      alert('Merci de remplir votre prénom et email.');
+      return;
+    }
+    document.getElementById('demo-success').style.display = 'block';
+    document.querySelector('.demo-form').style.opacity = '0.4';
+    document.querySelector('.demo-submit').disabled = true;
+  }
+</script>
+</body>
+</html>
